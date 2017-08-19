@@ -622,7 +622,11 @@ static pj_status_t apply_call_setting(pjsua_call *call,
 					  call->secure_level,
 					  call->inv->pool_prov,
 					  rem_sdp, NULL,
-					  PJ_FALSE, NULL);
+					  PJ_FALSE, NULL
+#if 0
+, rtp_cb, rtcp_cb
+#endif
+);
 	if (status != PJ_SUCCESS) {
 	    pjsua_perror(THIS_FILE, "Error re-initializing media channel",
 			 status);
@@ -641,7 +645,17 @@ PJ_DEF(pj_status_t) pjsua_call_make_call(pjsua_acc_id acc_id,
 					 const pjsua_call_setting *opt,
 					 void *user_data,
 					 const pjsua_msg_data *msg_data,
-					 pjsua_call_id *p_call_id)
+					 pjsua_call_id *p_call_id
+#if 0
+,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+					 )
 {
     pj_pool_t *tmp_pool = NULL;
     pjsip_dialog *dlg = NULL;
@@ -816,7 +830,11 @@ PJ_DEF(pj_status_t) pjsua_call_make_call(pjsua_acc_id acc_id,
         status = pjsua_media_channel_init(call->index, PJSIP_ROLE_UAC,
                                           call->secure_level, dlg->pool,
                                           NULL, NULL, PJ_TRUE,
-                                          &on_make_call_med_tp_complete);
+                                          &on_make_call_med_tp_complete
+#if 0
+                                          ,rtp_cb, rtcp_cb
+#endif
+);
     }
     if (status == PJ_SUCCESS) {
         status = on_make_call_med_tp_complete(call->index, NULL);
@@ -1093,7 +1111,17 @@ on_return:
  * Handle incoming INVITE request.
  * Called by pjsua_core.c
  */
-pj_bool_t pjsua_call_on_incoming(pjsip_rx_data *rdata)
+pj_bool_t pjsua_call_on_incoming(pjsip_rx_data *rdata
+#if 0
+,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+)
 {
     pj_str_t contact;
     pjsip_dialog *dlg = pjsip_rdata_get_dlg(rdata);
@@ -1493,7 +1521,12 @@ pj_bool_t pjsua_call_on_incoming(pjsip_rx_data *rdata)
 					  rdata->tp_info.pool,
 					  offer,
 					  &sip_err_code, PJ_TRUE,
-					  &on_incoming_call_med_tp_complete);
+					  &on_incoming_call_med_tp_complete
+#if 0
+                    ,
+					  rtp_cb, rtcp_cb
+#endif
+                    );
 	if (status == PJ_SUCCESS) {
 	    status = on_incoming_call_med_tp_complete(call_id, NULL);
 	    if (status != PJ_SUCCESS) {
@@ -2012,8 +2045,14 @@ PJ_DEF(pj_status_t) pjsua_call_set_user_data( pjsua_call_id call_id,
  */
 PJ_DEF(void*) pjsua_call_get_user_data(pjsua_call_id call_id)
 {
-    PJ_ASSERT_RETURN(call_id>=0 && call_id<(int)pjsua_var.ua_cfg.max_calls,
+	if(!(call_id >=0))
+		if(!(call_id<(int)pjsua_var.ua_cfg.max_calls))
+    		PJ_ASSERT_RETURN(call_id>=0 && call_id<(int)pjsua_var.ua_cfg.max_calls,
 		     NULL);
+		else
+    		PJ_ASSERT_RETURN(call_id>=0 && call_id<(int)pjsua_var.ua_cfg.max_calls,
+		     NULL);
+		
     return pjsua_var.calls[call_id].user_data;
 }
 
@@ -2162,7 +2201,17 @@ PJ_DEF(pj_status_t) pjsua_call_answer2(pjsua_call_id call_id,
 				       const pjsua_call_setting *opt,
 				       unsigned code,
 				       const pj_str_t *reason,
-				       const pjsua_msg_data *msg_data)
+				       const pjsua_msg_data *msg_data
+#if 0
+, 
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+				       )
 {
     pjsua_call *call;
     pjsip_dialog *dlg = NULL;
@@ -2219,7 +2268,12 @@ PJ_DEF(pj_status_t) pjsua_call_answer2(pjsua_call_id call_id,
 					  call->secure_level,
 					  dlg->pool,
 					  NULL, NULL, PJ_TRUE,
-					  &on_answer_call_med_tp_complete);
+					  &on_answer_call_med_tp_complete
+#if 0
+, 
+					  rtp_cb, rtcp_cb
+#endif
+);
 	if (status == PJ_SUCCESS) {
 	    status = on_answer_call_med_tp_complete(call->index, NULL);
 	    if (status != PJ_SUCCESS) {

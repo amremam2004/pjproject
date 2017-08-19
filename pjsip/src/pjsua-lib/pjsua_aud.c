@@ -417,19 +417,23 @@ void pjsua_check_snd_dev_idle()
      * It is idle when there is no port connection in the bridge and
      * there is no active call.
      */
-    if (pjsua_var.snd_idle_timer.id == PJ_FALSE &&
-	call_cnt == 0 &&
-	pjmedia_conf_get_connect_count(pjsua_var.mconf) == 0)
-    {
-	pj_time_val delay;
-
-	delay.msec = 0;
-	delay.sec = pjsua_var.media_cfg.snd_auto_close_time;
-
-	pjsua_var.snd_idle_timer.id = PJ_TRUE;
-	pjsip_endpt_schedule_timer(pjsua_var.endpt, &pjsua_var.snd_idle_timer,
-				   &delay);
-    }
+	if( pjsua_var.cap_dev != NULL_SND_DEV_ID &&   
+		pjsua_var.play_dev != NULL_SND_DEV_ID)
+	{
+	    if (pjsua_var.snd_idle_timer.id == PJ_FALSE &&
+		call_cnt == 0 &&
+		pjmedia_conf_get_connect_count(pjsua_var.mconf) == 0)
+	    {
+		pj_time_val delay;
+	
+		delay.msec = 0;
+		delay.sec = pjsua_var.media_cfg.snd_auto_close_time;
+	
+		pjsua_var.snd_idle_timer.id = PJ_TRUE;
+		pjsip_endpt_schedule_timer(pjsua_var.endpt, &pjsua_var.snd_idle_timer,
+					   &delay);
+	    }
+	}
 }
 
 /* Timer callback to close sound device */
@@ -561,6 +565,26 @@ static void dtmf_callback(pjmedia_stream *strm, void *user_data,
     pj_log_pop_indent();
 }
 
+
+static void rtp_log_callback(pjmedia_stream *strm, void *user_data, void *pkt,
+			  pj_size_t size)
+{
+    PJ_UNUSED_ARG(strm);
+
+
+    /* For discussions about call mutex protection related to this
+     * callback, please see ticket #460:
+     *	http://trac.pjsip.org/repos/ticket/460#comment:4
+     */
+    if (pjsua_var.ua_cfg.cb.on_rtp_log_pkt) {
+	pjsua_call_id call_id;
+
+	call_id = (pjsua_call_id)(pj_ssize_t)user_data;
+	pjsua_var.ua_cfg.cb.on_rtp_log_pkt(call_id, pkt, size);
+    }
+
+}
+
 /* Internal function: update audio channel after SDP negotiation.
  * Warning: do not use temporary/flip-flop pool, e.g: inv->pool_prov,
  *          for creating stream, etc, as after SDP negotiation and when
@@ -638,6 +662,12 @@ pj_status_t pjsua_aud_channel_update(pjsua_call_media *call_med,
 	if (pjsua_var.ua_cfg.cb.on_dtmf_digit) {
 	    pjmedia_stream_set_dtmf_callback(call_med->strm.a.stream,
 					     &dtmf_callback,
+					     (void*)(pj_ssize_t)(call->index));
+	}
+
+	if (pjsua_var.ua_cfg.cb.on_rtp_log_pkt) {
+	    pjmedia_stream_set_rtp_log_callback(call_med->strm.a.stream,
+					     &rtp_log_callback,
 					     (void*)(pj_ssize_t)(call->index));
 	}
 

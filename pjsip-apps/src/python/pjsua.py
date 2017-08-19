@@ -255,7 +255,7 @@ class UAConfig:
                    also be used if DNS SRV resolution for stun_domain fails.
     user_agent  -- Optionally specify the user agent name.
     """
-    max_calls = 4
+    max_calls = 100 # 4
     nameserver = []
     stun_domain = ""
     stun_host = ""
@@ -272,7 +272,7 @@ class UAConfig:
     def _cvt_to_pjsua(self):
         cfg = _pjsua.config_default()
         cfg.max_calls = self.max_calls
-        cfg.thread_cnt = 0
+        cfg.thread_cnt = 16 # 16 # 0
         cfg.nameserver = self.nameserver
         cfg.stun_domain = self.stun_domain
         cfg.stun_host = self.stun_host
@@ -297,6 +297,19 @@ class LogConfig:
                      def log_cb(level, str, len):
                         print str,
 
+    callback_sip_rx      -- specify callback to be called to write sip rx
+                     messages. Sample function:
+
+			def log_cb_sip_rx(msg_info_len, msg_type, status_code, cid, method, cseq, tryansport_type, src_name, src_port, msg_buf):
+    			pass
+
+
+    callback_sip_tx      -- specify callback to be called to write sip tx
+                     messages. Sample function:
+
+			def log_cb_sip_tx(msg_info_len, msg_type, status_code, cid, method, cseq, tryansport_type, src_name, src_port, msg_buf):
+			    pass
+
     """
     msg_logging = True
     level = 5
@@ -304,9 +317,11 @@ class LogConfig:
     decor = 0
     filename = ""
     callback = None
+    callback_sip_rx = None
+    callback_sip_tx = None
     
     def __init__(self, level=-1, filename="", callback=None,
-                 console_level=-1):
+                 console_level=-1, callback_sip_rx=None, callback_sip_tx=None):
         self._cvt_from_pjsua(_pjsua.logging_config_default())
         if level != -1:
             self.level = level
@@ -314,6 +329,10 @@ class LogConfig:
             self.filename = filename
         if callback != None:
             self.callback = callback
+        if callback_sip_rx != None:
+            self.callback_sip_rx = callback_sip_rx
+        if callback_sip_tx != None:
+            self.callback_sip_tx = callback_sip_tx
         if console_level != -1:
             self.console_level = console_level
 
@@ -324,6 +343,8 @@ class LogConfig:
         self.decor = cfg.decor
         self.filename = cfg.log_filename
         self.callback = cfg.cb
+        self.callback_sip_rx = cfg.cb_sip_rx
+        self.callback_sip_tx = cfg.cb_sip_tx
 
     def _cvt_to_pjsua(self):
         cfg = _pjsua.logging_config_default()
@@ -333,6 +354,8 @@ class LogConfig:
         cfg.decor = self.decor
         cfg.log_filename = self.filename
         cfg.cb = self.callback
+        cfg.cb_sip_rx = self.callback_sip_rx
+        cfg.cb_sip_tx = self.callback_sip_tx
         return cfg
 
 
@@ -426,6 +449,7 @@ class MediaConfig:
         self.enable_turn = cfg.enable_turn
         self.turn_server = cfg.turn_server
         self.turn_conn_type = cfg.turn_conn_type
+        self.thread_cnt = cfg.thread_cnt
         if cfg.turn_username:
             self.turn_cred = AuthCred(cfg.turn_realm, cfg.turn_username,
                                       cfg.turn_passwd, cfg.turn_passwd_type)
@@ -454,6 +478,7 @@ class MediaConfig:
         cfg.enable_turn = self.enable_turn
         cfg.turn_server = self.turn_server
         cfg.turn_conn_type = self.turn_conn_type
+        #cfg.thread_cnt = 4 # 0
         if self.turn_cred:
             cfg.turn_realm = self.turn_cred.realm
             cfg.turn_username = self.turn_cred.username
@@ -983,9 +1008,9 @@ class AccountCallback:
         """Notification about incoming call.
 
         Application should implement one of on_incoming_call() or
-	on_incoming_call2(), otherwise, the default behavior is to
+    on_incoming_call2(), otherwise, the default behavior is to
         reject the call with default status code. Note that if both are
-	implemented, only on_incoming_call2() will be called.
+    implemented, only on_incoming_call2() will be called.
 
         Keyword arguments:
         call    -- the new incoming call
@@ -996,16 +1021,16 @@ class AccountCallback:
         """Notification about incoming call, with received SIP message info.
 
         Application should implement one of on_incoming_call() or
-	on_incoming_call2(), otherwise, the default behavior is to
+    on_incoming_call2(), otherwise, the default behavior is to
         reject the call with default status code. Note that if both are
-	implemented, only on_incoming_call2() will be called.
+    implemented, only on_incoming_call2() will be called.
 
         Keyword arguments:
         call    -- the new incoming call
         rdata   -- the received message
         """
         call.hangup()
-	
+    
     def on_incoming_subscribe(self, buddy, from_uri, contact_uri, pres_obj):
         """Notification when incoming SUBSCRIBE request is received. 
         
@@ -1080,8 +1105,8 @@ class AccountCallback:
     def on_mwi_info(self, body):
         """
         Notification about change in Message Summary / Message Waiting
-	Indication (RFC 3842) status. MWI subscription must be enabled
-	in the account config to receive this notification.
+    Indication (RFC 3842) status. MWI subscription must be enabled
+    in the account config to receive this notification.
 
         Keyword arguments:
         body      -- String containing message body as received in the
@@ -1384,6 +1409,27 @@ class CallCallback:
 
         Keyword argument:
         digits  -- string containing the received digits.
+
+        """
+        pass
+
+    def on_rtp_log(self, call_id = None, pkt = None, sz = None):
+        print "pjsua.on_rtp_log"
+        """Notification on incoming rtp
+
+        """
+        pass
+
+    def on_rx_sip_log(self, call_id = None, pkt = None, sz = None):
+        print "pjsua.on_rx_sip_log"
+        """Notification on incoming sip
+
+        """
+        pass
+
+    def on_tx_sip_log(self, call_id = None, pkt = None, sz = None):
+        print "pjsua.on_tx_sip_log"
+        """Notification on outgoing sip
 
         """
         pass
@@ -1758,6 +1804,7 @@ class Call:
         lck = self._lib().auto_lock()
         err = _pjsua.call_dial_dtmf(self._id, digits)
         self._lib()._err_check("dial_dtmf()", self, err)
+        #return err
 
     def send_request(self, method, hdr_list=None, content_type=None,
                      body=None):
@@ -1792,7 +1839,7 @@ class Call:
         self._lib()._err_check("send_request()", self, err)
 
     def send_pager(self, text, im_id=0, content_type="text/plain", 
-    		   hdr_list=None):
+               hdr_list=None):
         """Send instant message inside a call.
 
         Keyword arguments:
@@ -2133,14 +2180,14 @@ class _LibMutex:
     def __init__(self, lck):
         self._lck = lck
         self._lck.acquire()
-	#_Trace(('lock acquired',))
+    #_Trace(('lock acquired',))
 
     def __del__(self):
         try:
             self._lck.release()
-	    #_Trace(('lock released',))
+        #_Trace(('lock released',))
         except:
-	    #_Trace(('lock release error',))
+        #_Trace(('lock release error',))
             pass
 
 
@@ -2200,6 +2247,9 @@ class Lib:
         py_ua_cfg.cb.on_incoming_call = _cb_on_incoming_call
         py_ua_cfg.cb.on_call_media_state = _cb_on_call_media_state
         py_ua_cfg.cb.on_dtmf_digit = _cb_on_dtmf_digit
+        py_ua_cfg.cb.on_rtp_log = _cb_on_rtp_log
+        py_ua_cfg.cb.on_rx_sip_log = _cb_on_rx_sip_log
+        py_ua_cfg.cb.on_tx_sip_log = _cb_on_tx_sip_log
         py_ua_cfg.cb.on_call_transfer_request = _cb_on_call_transfer_request
         py_ua_cfg.cb.on_call_transfer_status = _cb_on_call_transfer_status
         py_ua_cfg.cb.on_call_replace_request = _cb_on_call_replace_request
@@ -2210,7 +2260,7 @@ class Lib:
         py_ua_cfg.cb.on_pager = _cb_on_pager
         py_ua_cfg.cb.on_pager_status = _cb_on_pager_status
         py_ua_cfg.cb.on_typing = _cb_on_typing
-	py_ua_cfg.cb.on_mwi_info = _cb_on_mwi_info;
+        py_ua_cfg.cb.on_mwi_info = _cb_on_mwi_info;
 
         err = _pjsua.init(py_ua_cfg, log_cfg._cvt_to_pjsua(), 
                           media_cfg._cvt_to_pjsua())
@@ -2258,18 +2308,18 @@ class Lib:
         return _pjsua.handle_events(timeout)
 
     def thread_register(self, name):
-	"""Register external threads (threads that are not created by PJSIP,
-	such as threads that are created by Python API) to PJSIP.
+        """Register external threads (threads that are not created by PJSIP,
+    such as threads that are created by Python API) to PJSIP.
 
-	The call must be made from the new thread before calling any pjlib 
-	functions.
+    The call must be made from the new thread before calling any pjlib 
+    functions.
 
-	Keyword arguments:
-	name	-- Non descriptive name for the thread
-	"""
-	dummy = 1
-	err = _pjsua.thread_register(name, dummy)
-	self._err_check("thread_register()", self, err)
+    Keyword arguments:
+    name    -- Non descriptive name for the thread
+        """
+        dummy = 1
+        err = _pjsua.thread_register(name, dummy)
+        self._err_check("thread_register()", self, err)
 
     def verify_sip_url(self, sip_url):
         """Verify that the specified string is a valid URI. 
@@ -2804,6 +2854,24 @@ class Lib:
         if call:
             call._cb.on_dtmf_digit(digits)
 
+    def _cb_on_rtp_log(self, call_id = None, rtp_pkt = None, pktlen = None):
+        call = self._lookup_call(call_id)
+        #print "_cb_on_rtp_log1", call_id, pktlen, call is not None
+        if call:
+            call._cb.on_rtp_log(rtp_pkt, pktlen)
+
+    def _cb_on_rx_sip_log(self, call_id = None, rtp_pkt = None, pktlen = None):
+        call = self._lookup_call(call_id)
+        #print "_cb_on_rtp_log1", call_id, pktlen, call is not None
+        if call:
+            call._cb.on_rx_sip_log(rtp_pkt, pktlen)
+
+    def _cb_on_tx_sip_log(self, call_id = None, rtp_pkt = None, pktlen = None):
+        call = self._lookup_call(call_id)
+        #print "_cb_on_rtp_log1", call_id, pktlen, call is not None
+        if call:
+            call._cb.on_tx_sip_log(rtp_pkt, pktlen)
+
     def _cb_on_call_transfer_request(self, call_id, dst, code):
         call = self._lookup_call(call_id)
         if call:
@@ -2902,6 +2970,16 @@ def _cb_on_call_media_state(call_id):
 def _cb_on_dtmf_digit(call_id, digits):
     _lib._cb_on_dtmf_digit(call_id, digits)
 
+def _cb_on_rtp_log(call_id = None, pkt = None, pktsize = None):
+    _lib._cb_on_rtp_log(call_id, pkt, pktsize)
+
+def _cb_on_rx_sip_log(call_id = None, pkt = None, pktsize = None):
+    _lib._cb_on_rx_sip_log(call_id, pkt, pktsize)
+
+def _cb_on_tx_sip_log(call_id = None, pkt = None, pktsize = None):
+    _lib._cb_on_tx_sip_log(call_id, pkt, pktsize)
+
+
 def _cb_on_call_transfer_request(call_id, dst, code):
     return _lib._cb_on_call_transfer_request(call_id, dst, code)
 
@@ -2940,13 +3018,14 @@ def _cb_on_mwi_info(acc_id, body):
 # Worker thread
 def _worker_thread_main(arg):
     global _lib
+    print "worker thread started"
     _Trace(('worker thread started..',))
     thread_desc = 0;
     err = _pjsua.thread_register("python worker", thread_desc)
     _lib._err_check("thread_register()", _lib, err)
     while _lib and _lib._quit == 0:
         _lib.handle_events(1)
-	time.sleep(0.050)
+    time.sleep(0.050)
     if _lib:
         _lib._quit = 2
     _Trace(('worker thread exited..',))

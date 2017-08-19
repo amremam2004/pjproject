@@ -424,3 +424,16 @@ PJ_DEF(pj_status_t) pjmedia_session_set_dtmf_callback(pjmedia_session *session,
 					    user_data);
 }
 
+
+PJ_DEF(pj_status_t) pjmedia_session_set_rtp_log_callback(pjmedia_session *session,
+				  unsigned index,
+				  void (*cb)(pjmedia_stream*, 
+				 	     void *user_data, 
+				 	     void *pkt, 
+					     pj_size_t bytes_read), 
+				  void *user_data)
+{
+    PJ_ASSERT_RETURN(session && index < session->stream_cnt, PJ_EINVAL);
+    return pjmedia_stream_set_rtp_log_callback(session->stream[index], cb,
+					    user_data);
+}

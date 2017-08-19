@@ -148,7 +148,23 @@ PJ_DECL(pj_status_t) pjmedia_transport_udp_attach(pjmedia_endpt *endpt,
 						  unsigned options,
 						  pjmedia_transport **p_tp);
 
-
+#if 0
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_rtp_cb(
+			pjmedia_transport *tp,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t));
+							
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_rtcp_cb(
+			pjmedia_transport *tp,
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t));
+							
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_userdata(
+			pjmedia_transport *tp,
+		void * userdata);
+#endif
 PJ_END_DECL
 
 

@@ -584,7 +584,17 @@ on_error:
 
 /* Create normal UDP media transports */
 static pj_status_t create_udp_media_transport(const pjsua_transport_config *cfg,
-					      pjsua_call_media *call_med)
+					      pjsua_call_media *call_med
+#if 0
+                        ,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+					      )
 {
     pjmedia_sock_info skinfo;
     pj_status_t status;
@@ -597,7 +607,11 @@ static pj_status_t create_udp_media_transport(const pjsua_transport_config *cfg,
     }
 
     status = pjmedia_transport_udp_attach(pjsua_var.med_endpt, NULL,
-					  &skinfo, 0, &call_med->tp);
+					  &skinfo, 0, &call_med->tp
+#if 0
+, rtp_cb, rtcp_cb
+#endif
+            );
     if (status != PJ_SUCCESS) {
 	pjsua_perror(THIS_FILE, "Unable to create media transport",
 		     status);
@@ -1550,7 +1564,17 @@ pj_status_t pjsua_call_media_init(pjsua_call_media *call_med,
 				  int security_level,
 				  int *sip_err_code,
                                   pj_bool_t async,
-                                  pjsua_med_tp_state_cb cb)
+                                  pjsua_med_tp_state_cb cb
+#if 0
+,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+                                  )
 {
     pj_status_t status = PJ_SUCCESS;
 
@@ -1598,7 +1622,11 @@ pj_status_t pjsua_call_media_init(pjsua_call_media *call_med,
 	        return PJ_EPENDING;
 	    }
 	} else {
-	    status = create_udp_media_transport(tcfg, call_med);
+	    status = create_udp_media_transport(tcfg, call_med
+#if 0
+, rtp_cb, rtcp_cb
+#endif
+);
 	}
 
         if (status != PJ_SUCCESS) {
@@ -1782,7 +1810,17 @@ pj_status_t pjsua_media_channel_init(pjsua_call_id call_id,
 				     const pjmedia_sdp_session *rem_sdp,
 				     int *sip_err_code,
                                      pj_bool_t async,
-                                     pjsua_med_tp_state_cb cb)
+                                     pjsua_med_tp_state_cb cb
+#if 0
+                        ,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+                                     )
 {
     const pj_str_t STR_AUDIO = { "audio", 5 };
     const pj_str_t STR_VIDEO = { "video", 5 };
@@ -2018,7 +2056,13 @@ pj_status_t pjsua_media_channel_init(pjsua_call_id call_id,
 					   security_level, sip_err_code,
                                            async,
                                            (async? &media_channel_init_cb:
-                                            NULL));
+                                            NULL)
+#if 0
+, 
+                            rtp_cb,
+    					  rtcp_cb
+#endif
+                                            );
             if (status == PJ_EPENDING) {
                 pending_med_tp = PJ_TRUE;
             } else if (status != PJ_SUCCESS) {
@@ -3373,3 +3417,69 @@ pj_status_t pjsua_media_apply_xml_control(pjsua_call_id call_id,
     return PJ_ENOTSUP;
 }
 
+
+#if 0
+PJ_DECL(pj_status_t) pjsua_transport_set_rtp_cb(
+			pjsua_call_id call_id,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t))
+{
+   unsigned mi;
+    pjsua_call *call = &pjsua_var.calls[call_id];
+    PJ_LOG(2,("pjsua_transport_set_rtp_cb", "called"));
+
+	for (mi=0; mi < call->med_prov_cnt; ++mi) {
+		pjsua_call_media *call_med = &call->media_prov[mi];
+
+
+	    if(call_med->tp->type == PJMEDIA_TRANSPORT_TYPE_UDP)
+	    {
+		    PJ_LOG(2,("pjsua_transport_set_rtp_cb", "called ##"));
+	    	pjmedia_transport_udp_set_rtp_cb(call_med->tp, rtp_cb);
+	    }
+	}
+    return PJ_SUCCESS;
+}
+							
+PJ_DECL(pj_status_t) pjsua_transport_set_rtcp_cb(
+			pjsua_call_id call_id,
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t))
+{
+   unsigned mi;
+    pjsua_call *call = &pjsua_var.calls[call_id];
+
+	for (mi=0; mi < call->med_prov_cnt; ++mi) {
+		pjsua_call_media *call_med = &call->media_prov[mi];
+
+
+	    if(call_med->tp->type == PJMEDIA_TRANSPORT_TYPE_UDP)
+	    {
+	    	return pjmedia_transport_udp_set_rtcp_cb(call_med->tp, rtcp_cb);
+	    }
+	}
+    return PJ_SUCCESS;
+}
+							
+PJ_DECL(pj_status_t) pjsua_transport_set_userdata(
+			pjsua_call_id call_id,
+		void * user_data)
+{
+   unsigned mi;
+    pjsua_call *call = &pjsua_var.calls[call_id];
+
+	for (mi=0; mi < call->med_prov_cnt; ++mi) {
+		pjsua_call_media *call_med = &call->media_prov[mi];
+
+
+	    if(call_med->tp->type == PJMEDIA_TRANSPORT_TYPE_UDP)
+	    {
+	    	return pjmedia_transport_udp_set_userdata(call_med->tp, user_data);
+	    }
+	}
+    return PJ_SUCCESS;
+}
+#endif		
+							

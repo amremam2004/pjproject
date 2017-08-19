@@ -436,8 +436,27 @@ typedef struct pjsua_logging_config
      * application specific device. This function will be called for
      * log messages on input verbosity level.
      */
-    void       (*cb)(int level, const char *data, int len);
-
+    void       (*cb)(const char * sender, int level, const char *data, int len);
+void (*cb_sip_tx)(int msg_info_len, 
+		int msg_type, 
+		int status_code,
+		const pj_str_t * cid,
+		const pj_str_t * method,
+		int cseq,
+		const char * tryansport_type,
+		const char * src_name,
+		int src_port,
+		void* msg_buf);
+void (*cb_sip_rx)(int msg_info_len, 
+		int msg_type, 
+		int status_code,
+		const pj_str_t * cid,
+		const pj_str_t * method,
+		int cseq,
+		const char * tryansport_type,
+		const char * src_name,
+		int src_port,
+		void* msg_buf);	
 
 } pjsua_logging_config;
 
@@ -771,6 +790,9 @@ typedef struct pjsua_callback
      */
     void (*on_dtmf_digit)(pjsua_call_id call_id, int digit);
 
+    void (*on_rtp_log_pkt)(pjsua_call_id call_id, void * pkt, pj_size_t);
+    void (*on_rx_sip_log_pkt)(pjsua_call_id call_id, void * pkt, pj_size_t);
+    void (*on_tx_sip_log_pkt)(pjsua_call_id call_id, void * pkt, pj_size_t);
     /**
      * Notify application on call being transferred (i.e. REFER is received).
      * Application can decide to accept/reject transfer request
@@ -3993,7 +4015,7 @@ PJ_DECL(pj_status_t) pjsua_acc_set_transport(pjsua_acc_id acc_id,
  * Maximum simultaneous calls.
  */
 #ifndef PJSUA_MAX_CALLS
-#   define PJSUA_MAX_CALLS	    32
+#   define PJSUA_MAX_CALLS	    512
 #endif
 
 /**
@@ -4462,7 +4484,17 @@ PJ_DECL(pj_status_t) pjsua_call_make_call(pjsua_acc_id acc_id,
 					  const pjsua_call_setting *opt,
 					  void *user_data,
 					  const pjsua_msg_data *msg_data,
-					  pjsua_call_id *p_call_id);
+					  pjsua_call_id *p_call_id
+#if 0
+                        ,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+					  );
 
 
 /**
@@ -7147,7 +7179,22 @@ PJ_DECL(pj_status_t) pjsua_vid_codec_set_param(
 /**
  * @}
  */
-
+#if 0
+PJ_DECL(pj_status_t) pjsua_transport_set_rtp_cb(
+                            pjsua_call_id call_id,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t));
+							
+PJ_DECL(pj_status_t) pjsua_transport_set_rtcp_cb(
+                            pjsua_call_id call_id,
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t));
+PJ_DECL(pj_status_t) pjsua_transport_set_userdata(
+                            pjsua_call_id call_id,
+		void * userdata);
+#endif
 PJ_END_DECL
 
 

@@ -178,6 +178,10 @@ struct pjmedia_stream
     void		    (*dtmf_cb)(pjmedia_stream*, void*, int);
     void		     *dtmf_cb_user_data;
 
+    /* rtp log callback */
+    void		    (*rtp_log_cb)(pjmedia_stream*, void*,  void*, pj_size_t);
+    void		     *rtp_log_cb_user_data;
+
 #if defined(PJMEDIA_HANDLE_G722_MPEG_BUG) && (PJMEDIA_HANDLE_G722_MPEG_BUG!=0)
     /* Enable support to handle codecs with inconsistent clock rate
      * between clock rate in SDP/RTP & the clock rate that is actually used.
@@ -1229,7 +1233,7 @@ static pj_status_t put_frame_imp( pjmedia_port *port,
      */
     if (stream->tx_dtmf_count) {
 	int first=0, last=0;
-
+	
 	create_dtmf_payload(stream, &frame_out, 0, &first, &last);
 
 	/* Encapsulate into RTP packet. Note that:
@@ -1621,6 +1625,9 @@ static void on_rx_rtp( void *data,
 
 {
     pjmedia_stream *stream = (pjmedia_stream*) data;
+    if (stream->rtp_log_cb) {
+		stream->rtp_log_cb(stream, stream->rtp_log_cb_user_data, pkt, bytes_read);
+    }
     pjmedia_channel *channel = stream->dec;
     const pjmedia_rtp_hdr *hdr;
     const void *payload;
@@ -2888,6 +2895,34 @@ PJ_DEF(pj_status_t) pjmedia_stream_set_dtmf_callback(pjmedia_stream *stream,
 
     return PJ_SUCCESS;
 }
+
+
+
+/*
+ * Set callback to be called upon receiving DTMF digits.
+ */
+PJ_DEF(pj_status_t) pjmedia_stream_set_rtp_log_callback(pjmedia_stream *stream,
+				 void (*cb)(pjmedia_stream*,
+    			 	     void *user_data, 
+					    void *pkt,
+					    pj_size_t bytes_read),
+				 void *user_data)
+{
+    PJ_ASSERT_RETURN(stream, PJ_EINVAL);
+
+    /* By convention, we use jitter buffer's mutex to access DTMF
+     * digits resources.
+     */
+    pj_mutex_lock(stream->jb_mutex);
+
+    stream->rtp_log_cb = cb;
+    stream->rtp_log_cb_user_data = user_data;
+
+    pj_mutex_unlock(stream->jb_mutex);
+
+    return PJ_SUCCESS;
+}
+
 
 /*
  * Send RTCP SDES.

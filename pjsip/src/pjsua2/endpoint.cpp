@@ -480,7 +480,7 @@ void Endpoint::performPendingJobs()
 /*
  * Endpoint static callbacks
  */
-void Endpoint::logFunc(int level, const char *data, int len)
+void Endpoint::logFunc(const char * sender, int level, const char *data, int len)
 {
     Endpoint &ep = Endpoint::instance();
 

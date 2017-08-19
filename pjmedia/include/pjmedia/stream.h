@@ -409,6 +409,13 @@ pjmedia_stream_set_dtmf_callback(pjmedia_stream *stream,
 					    int digit), 
 				 void *user_data);
 
+PJ_DECL(pj_status_t)
+pjmedia_stream_set_rtp_log_callback(pjmedia_stream *stream,
+				  void (*cb)(pjmedia_stream*, 
+				 	     void *user_data, 
+				 	     void *pkg, 
+					     pj_size_t bytes_read), 
+				  void *user_data);
 
 /**
  * Send RTCP SDES for the media stream.

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
  */
 #include "_pjsua.h"
-
+#include <stdio.h>
 #define THIS_FILE    "main.c"
 #define POOL_SIZE    512
 #define SND_DEV_NUM  64
@@ -27,6 +27,9 @@
 /* LIB BASE */
 
 static PyObject* g_obj_log_cb;
+static PyObject* g_obj_log_cb_sip_rx;
+static PyObject* g_obj_log_cb_sip_tx;
+
 static long g_thread_id;
 static struct py_thread_desc
 {
@@ -40,7 +43,7 @@ static struct py_thread_desc
 static PyObj_pjsua_callback * g_obj_callback;
 
 /* Set this to 1 if all threads are created by Python */
-#define NO_PJSIP_THREAD 1
+#define NO_PJSIP_THREAD 0
 
 #if NO_PJSIP_THREAD
 #   define ENTER_PYTHON()
@@ -61,6 +64,226 @@ static void clear_py_thread_desc(void)
 }
 
 
+/*
+ * cb_log_cb
+ * declares method for reconfiguring logging process for callback struct
+ */
+static void cb_log_cb(const char * sender, int level, const char *data, int len)
+{
+	
+    /* Ignore if this callback is called from alien thread context,
+     * or otherwise it will crash Python.
+     */
+#if 0
+    if (pj_thread_local_get(g_thread_id) == 0)
+	return;
+#endif
+
+    if (PyCallable_Check(g_obj_log_cb)) {
+	PyObject *param_data;
+	PyObject *param_sender;
+
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+
+	param_data = PyString_FromStringAndSize(data, len);
+	param_sender = PyString_FromString(sender);
+
+        PyObject_CallFunction(
+            g_obj_log_cb, 
+	    "iOiO",
+	    level,
+            param_data, 
+	    len, 
+	    param_sender,
+	    NULL
+        );
+
+	Py_DECREF(param_data);
+	Py_DECREF(param_sender);
+
+//	LEAVE_PYTHON();
+	PyGILState_Release(state);
+
+    }
+}
+
+static void cb_log_cb_sip_rx(int msg_info_len, 
+	int msg_type, 
+	int status_code,
+	const pj_str_t * cid,
+	const pj_str_t * method,
+	int cseq,
+	const char * tryansport_type,
+	const char * src_name,
+	int src_port,
+	void* msg_buf)
+{
+	
+
+    if (PyCallable_Check(g_obj_log_cb_sip_rx)) {
+    
+	PyObject *param_cid;
+	PyObject *param_method;
+	PyObject *param_tryansport_type;
+	PyObject *param_src_name;
+	PyObject *param_msg_buf;
+
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+	if(cid != NULL){
+		param_cid = PyString_FromStringAndSize(cid->ptr, cid->slen);
+	}
+	else{
+		param_cid=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(method != NULL){
+		param_method = PyString_FromStringAndSize(method->ptr, method->slen);
+	}
+	else{
+		param_method=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(tryansport_type != NULL){
+		param_tryansport_type = PyString_FromString(tryansport_type);
+	}
+	else{
+		param_tryansport_type=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(src_name != NULL){
+		param_src_name = PyString_FromString(src_name);
+	}
+	else{
+		param_src_name=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(msg_buf != NULL && msg_info_len >0){
+		param_msg_buf = PyString_FromStringAndSize(msg_buf, msg_info_len);
+	}
+	else{
+		param_msg_buf=Py_None;
+		Py_INCREF(Py_None);
+	}
+
+        PyObject_CallFunction(
+            g_obj_log_cb_sip_rx, 
+	    "iiiOOiOOiO",
+		msg_info_len, 
+		msg_type, 
+		status_code,
+		param_cid,
+		param_method,
+		cseq,
+		param_tryansport_type,
+		param_src_name,
+		src_port,
+		param_msg_buf,
+	    NULL
+        );
+
+	Py_DECREF(param_cid);
+	Py_DECREF(param_method);
+	Py_DECREF(param_tryansport_type);
+	Py_DECREF(param_src_name);
+	Py_DECREF(param_msg_buf);
+
+//	LEAVE_PYTHON();
+	PyGILState_Release(state);
+
+    }
+}
+
+static void cb_log_cb_sip_tx(int msg_info_len, 
+	int msg_type, 
+	int status_code,
+	const pj_str_t * cid,
+	const pj_str_t * method,
+	int cseq,
+	const char * tryansport_type,
+	const char * src_name,
+	int src_port,
+	void* msg_buf)
+{
+	
+
+    if (PyCallable_Check(g_obj_log_cb_sip_tx)) {
+	PyObject *param_cid;
+	PyObject *param_method;
+	PyObject *param_tryansport_type;
+	PyObject *param_src_name;
+	PyObject *param_msg_buf;
+
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+
+	if(cid != NULL){
+		param_cid = PyString_FromStringAndSize(cid->ptr, cid->slen);
+	}
+	else{
+		param_cid=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(method != NULL){
+		param_method = PyString_FromStringAndSize(method->ptr, method->slen);
+	}
+	else{
+		param_method=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(tryansport_type != NULL){
+		param_tryansport_type = PyString_FromString(tryansport_type);
+	}
+	else{
+		param_tryansport_type=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(src_name != NULL){
+		param_src_name = PyString_FromString(src_name);
+	}
+	else{
+		param_src_name=Py_None;
+		Py_INCREF(Py_None);
+	}
+	if(msg_buf != NULL && msg_info_len >0){
+		param_msg_buf = PyString_FromStringAndSize(msg_buf, msg_info_len);
+	}
+	else{
+		param_msg_buf=Py_None;
+		Py_INCREF(Py_None);
+	}
+
+        PyObject_CallFunction(
+            g_obj_log_cb_sip_tx, 
+	    "iiiOOiOOiO",
+	msg_info_len, 
+	msg_type, 
+	status_code,
+	param_cid,
+	param_method,
+	cseq,
+	param_tryansport_type,
+	param_src_name,
+	src_port,
+	param_msg_buf,
+		    NULL
+        );
+
+	Py_DECREF(param_cid);
+	Py_DECREF(param_method);
+	Py_DECREF(param_tryansport_type);
+	Py_DECREF(param_src_name);
+	Py_DECREF(param_msg_buf);
+
+//	LEAVE_PYTHON();
+	PyGILState_Release(state);
+
+    }
+}
+
+
+#if 0
 /*
  * cb_log_cb
  * declares method for reconfiguring logging process for callback struct
@@ -96,6 +319,49 @@ static void cb_log_cb(int level, const char *data, int len)
     }
 }
 
+#endif
+
+#if 0
+void  rtp_cb(	void* user_data,
+					 void *pkt,
+					 pj_ssize_t size)
+{
+    /* Ignore if this callback is called from alien thread context,
+     * or otherwise it will crash Python.
+     */
+	PJ_LOG(2,("rtp_cb", "called"));
+    if (pj_thread_local_get(g_thread_id) == 0)
+	return;
+
+    if (PyCallable_Check(g_obj_rtp_cb)) {
+	PyObject *param_data;
+
+	ENTER_PYTHON();
+
+	param_data = PyString_FromStringAndSize(pkt, size);
+
+        PyObject_CallFunction(
+            g_obj_rtp_cb, 
+	    "iOi",
+	    0,
+            param_data, 
+	    size, 
+	    NULL
+        );
+
+	Py_DECREF(param_data);
+
+	LEAVE_PYTHON();
+    }
+
+}
+
+void  rtcp_cb(	void* user_data,
+					 void *pkt,
+					 pj_ssize_t size)
+{
+}
+#endif
 /*
  * cb_on_call_state
  * declares method on_call_state for callback struct
@@ -202,6 +468,86 @@ static void cb_on_dtmf_digit(pjsua_call_id call_id, int digit)
 	    NULL
 	);
 
+	PyGILState_Release(state);
+    }
+}
+
+
+
+static FILE* calldumps[100];
+static void cb_on_rtp_log(pjsua_call_id call_id, void * pkt, pj_size_t size)
+{
+#if 0
+	if(calldumps[call_id]==0){
+		char fname[100];
+		sprintf(fname, "C:\\src\\IVRStress\\%d.raw", call_id);
+		calldumps[call_id]=fopen(fname, "wb");
+	}	    
+	    fwrite((char *)pkt+12, 1, size-12, calldumps[call_id]);
+	    return;
+#endif
+	    if (PyCallable_Check(g_obj_callback->on_rtp_log)) {
+		PyObject *param_data;
+	
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+	param_data = PyString_FromStringAndSize(pkt, size);
+        PyObject_CallFunction(
+	    g_obj_callback->on_rtp_log,
+	    "iOi",
+	    (int)call_id,
+	    param_data,
+	    (int)size,
+	    NULL
+	);
+ 	Py_DECREF(param_data);
+
+//	LEAVE_PYTHON();
+	PyGILState_Release(state);
+    }
+}
+
+static void cb_on_rx_sip_log(pjsua_call_id call_id, void * pkt, pj_size_t size)
+{
+	    if (PyCallable_Check(g_obj_callback->on_rx_sip_log)) {
+		PyObject *param_data;
+	
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+	param_data = PyString_FromStringAndSize(pkt, size);
+        PyObject_CallFunction(
+	    g_obj_callback->on_rx_sip_log,
+	    "iOi",
+	    (int)call_id,
+	    param_data,
+	    (int)size,
+	    NULL
+	);
+ 	Py_DECREF(param_data);
+
+//	LEAVE_PYTHON();
+	PyGILState_Release(state);
+    }
+}
+static void cb_on_tx_sip_log(pjsua_call_id call_id, void * pkt, pj_size_t size)
+{
+	    if (PyCallable_Check(g_obj_callback->on_tx_sip_log)) {
+		PyObject *param_data;
+	
+//	ENTER_PYTHON();
+	PyGILState_STATE state = PyGILState_Ensure();
+	param_data = PyString_FromStringAndSize(pkt, size);
+        PyObject_CallFunction(
+	    g_obj_callback->on_tx_sip_log,
+	    "iOi",
+	    (int)call_id,
+	    param_data,
+	    (int)size,
+	    NULL
+	);
+ 	Py_DECREF(param_data);
+
+//	LEAVE_PYTHON();
 	PyGILState_Release(state);
     }
 }
@@ -800,8 +1146,29 @@ static PyObject *py_pjsua_msg_data_init(PyObject *pSelf, PyObject *pArgs)
     return (PyObject *)PyObj_pjsua_msg_data_new(&PyTyp_pjsua_msg_data, 
 						NULL, NULL);
 }
+#if 0
+static PyObject * py_pjsua_set_rtp_cb(PyObject * pSelf, 
+		PyObject *pArgs)
+{
+    PyObject *rtpCBObj;
+    int call_id;
+    pj_status_t status = 0;
+    PJ_LOG(2,("py_pjsua_set_rtp_cb", "called"));
 
-
+    if (!PyArg_ParseTuple(pArgs, "iO", &call_id, &rtpCBObj)) {
+        return NULL;
+    }
+    Py_XDECREF(g_obj_rtp_cb);
+    g_obj_rtp_cb = rtpCBObj;
+    Py_INCREF(g_obj_rtp_cb);
+    pjsua_transport_set_rtp_cb(call_id, &rtp_cb);
+    PJ_LOG(2,("py_pjsua_set_rtp_cb", "called %d", call_id));
+    
+    //pjsua_transport_set_rtcp_cb(call_id, rtcp_cb);
+    //pjsua_transport_set_userdata(call_id, rtp_cb);
+    return Py_BuildValue("i",status);
+}
+#endif
 /*
  * py_pjsua_reconfigure_logging
  */
@@ -827,11 +1194,28 @@ static PyObject *py_pjsua_reconfigure_logging(PyObject *pSelf,
         cfg.console_level = log->console_level;
         cfg.decor = log->decor;
         cfg.log_filename = PyString_ToPJ(log->log_filename);
+#if 0
+        Py_XDECREF(g_obj_rtp_cb);
+        g_obj_rtp_cb = log->rtp_cb;
+        Py_INCREF(g_obj_rtp_cb);
+#endif
         Py_XDECREF(g_obj_log_cb);
         g_obj_log_cb = log->cb;
         Py_INCREF(g_obj_log_cb);
         cfg.cb = &cb_log_cb;
+
+        Py_XDECREF(g_obj_log_cb_sip_rx);
+        g_obj_log_cb_sip_rx = log->cb_sip_rx;
+        Py_INCREF(g_obj_log_cb_sip_rx);
+        cfg.cb_sip_rx = &cb_log_cb_sip_rx;
+
+        Py_XDECREF(g_obj_log_cb_sip_tx);
+        g_obj_log_cb_sip_tx = log->cb_sip_tx;
+        Py_INCREF(g_obj_log_cb_sip_tx);
+        cfg.cb_sip_tx = &cb_log_cb_sip_tx;
+
         status = pjsua_reconfigure_logging(&cfg);
+        
     } else {
         status = pjsua_reconfigure_logging(NULL);
     }
@@ -896,6 +1280,7 @@ static PyObject *py_pjsua_init(PyObject *pSelf, PyObject *pArgs)
     pjsua_logging_config cfg_log, *p_cfg_log;
     pjsua_media_config cfg_media, *p_cfg_media;
 
+
     PJ_UNUSED_ARG(pSelf);
 
     if (!PyArg_ParseTuple(pArgs, "OOO", &o_ua_cfg, &o_log_cfg, &o_media_cfg)) {
@@ -919,6 +1304,9 @@ static PyObject *py_pjsua_init(PyObject *pSelf, PyObject *pArgs)
     	cfg_ua.cb.on_incoming_call = &cb_on_incoming_call;
     	cfg_ua.cb.on_call_media_state = &cb_on_call_media_state;
 	cfg_ua.cb.on_dtmf_digit = &cb_on_dtmf_digit;
+	cfg_ua.cb.on_rtp_log_pkt = & cb_on_rtp_log;
+	cfg_ua.cb.on_rx_sip_log_pkt = & cb_on_rx_sip_log;
+	cfg_ua.cb.on_tx_sip_log_pkt = & cb_on_tx_sip_log;
     	cfg_ua.cb.on_call_transfer_request = &cb_on_call_transfer_request;
     	cfg_ua.cb.on_call_transfer_status = &cb_on_call_transfer_status;
     	cfg_ua.cb.on_call_replace_request = &cb_on_call_replace_request;
@@ -948,7 +1336,22 @@ static PyObject *py_pjsua_init(PyObject *pSelf, PyObject *pArgs)
         g_obj_log_cb = obj_log->cb;
         Py_INCREF(g_obj_log_cb);
 
+        Py_XDECREF(g_obj_log_cb_sip_rx);
+        g_obj_log_cb_sip_rx = obj_log->cb_sip_rx;
+        Py_INCREF(g_obj_log_cb_sip_rx);
+
+        Py_XDECREF(g_obj_log_cb_sip_tx);
+        g_obj_log_cb_sip_tx = obj_log->cb_sip_tx;
+        Py_INCREF(g_obj_log_cb_sip_tx);
+
+#if 0
+        Py_XDECREF(g_obj_rtp_cb);
+        g_obj_rtp_cb = obj_log->rtp_cb;
+        Py_INCREF(g_obj_rtp_cb);
+#endif
         cfg_log.cb = &cb_log_cb;
+        cfg_log.cb_sip_rx = &cb_log_cb_sip_rx;
+        cfg_log.cb_sip_tx = &cb_log_cb_sip_tx;
         p_cfg_log = &cfg_log;
 
     } else {
@@ -1120,7 +1523,11 @@ static char pjsua_reconfigure_logging_doc[] =
     "Application can call this function at any time (after pjsua_create(), of "
     "course) to change logging settings. Parameters: "
     "c: Logging configuration.";
-
+#if 0
+static char py_pjsua_set_rtp_cb_doc[] =
+    "py_pjsua.Call py_pjsua.py_pjsua_set_rtp_cb  ()  "
+    "Use this function to set rtp callback.";
+#endif
 static char pjsua_logging_config_default_doc[] =
     "_pjsua.Logging_Config _pjsua.logging_config_default  ()  "
     "Use this function to initialize logging config.";
@@ -2755,6 +3162,8 @@ static PyObject *py_pjsua_set_null_snd_dev(PyObject *pSelf, PyObject *pArgs)
     return Py_BuildValue("i", status);
 }
 
+
+
 /*
  * py_pjsua_set_ec
  */
@@ -3096,6 +3505,8 @@ static PyObject *py_pjsua_enum_calls(PyObject *pSelf, PyObject *pArgs)
     
     return (PyObject*)ret;
 }
+
+
 
 /*
  * py_pjsua_call_make_call
@@ -4032,6 +4443,12 @@ static PyMethodDef py_pjsua_methods[] =
     	"reconfigure_logging", py_pjsua_reconfigure_logging, METH_VARARGS,
     	pjsua_reconfigure_logging_doc
     },
+#if 0
+    {
+    	"set_rtp_cb", py_pjsua_set_rtp_cb, METH_VARARGS,
+    	py_pjsua_set_rtp_cb_doc
+    },
+#endif
     {
     	"logging_config_default", py_pjsua_logging_config_default,
     	METH_VARARGS, pjsua_logging_config_default_doc

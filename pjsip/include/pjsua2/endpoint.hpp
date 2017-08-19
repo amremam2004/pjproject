@@ -1278,7 +1278,7 @@ private:
     void performPendingJobs();
 
     /* Endpoint static callbacks */
-    static void logFunc(int level, const char *data, int len);
+    static void logFunc(const char * sender, int level, const char *data, int len);
     static void stun_resolve_cb(const pj_stun_resolve_result *result);
     static void on_timer(pj_timer_heap_t *timer_heap,
         		 struct pj_timer_entry *entry);

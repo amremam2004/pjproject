@@ -406,7 +406,7 @@ typedef struct pjsua_timer_list
     void                   *user_data;
 } pjsua_timer_list;
 
-
+#define MAX_THREADS_PJSUA	16
 /**
  * Global pjsua application data.
  */
@@ -433,7 +433,7 @@ struct pjsua_data
 
     /* Threading: */
     pj_bool_t		 thread_quit_flag;  /**< Thread quit flag.	*/
-    pj_thread_t		*thread[4];	    /**< Array of threads.	*/
+    pj_thread_t		*thread[MAX_THREADS_PJSUA];	    /**< Array of threads.	*/
 
     /* STUN and resolver */
     pj_stun_config	 stun_cfg;  /**< Global STUN settings.		*/
@@ -653,7 +653,17 @@ pj_status_t pjsua_media_channel_init(pjsua_call_id call_id,
 				     const pjmedia_sdp_session *rem_sdp,
 				     int *sip_err_code,
                                      pj_bool_t async,
-                                     pjsua_med_tp_state_cb cb);
+                                     pjsua_med_tp_state_cb cb
+#if 0
+    ,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+                                     );
 pj_status_t pjsua_media_channel_create_sdp(pjsua_call_id call_id, 
 					   pj_pool_t *pool,
 					   const pjmedia_sdp_session *rem_sdp,
@@ -676,7 +686,17 @@ pj_status_t pjsua_call_media_init(pjsua_call_media *call_med,
 				  int security_level,
 				  int *sip_err_code,
                                   pj_bool_t async,
-                                  pjsua_med_tp_state_cb cb);
+                                  pjsua_med_tp_state_cb cb
+#if 0
+                    ,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t),
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t)
+#endif
+                                  );
 void pjsua_set_media_tp_state(pjsua_call_media *call_med, pjsua_med_tp_st tp_st);
 
 void pjsua_media_prov_clean_up(pjsua_call_id call_id);

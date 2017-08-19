@@ -1116,9 +1116,15 @@ static char pjsua_reconfigure_logging_doc[] =
     "course) to change logging settings. Parameters: "
     "c: Logging configuration.";
 
-static char pjsua_logging_config_default_doc[] =
-    "py_pjsua.Logging_Config py_pjsua.logging_config_default  ()  "
-    "Use this function to initialize logging config.";
+static char pjsua_reconfigure_logging_doc[] =
+    "int py_pjsua.reconfigure_logging (py_pjsua.Logging_Config c) "
+    "Application can call this function at any time (after pjsua_create(), of "
+    "course) to change logging settings. Parameters: "
+    "c: Logging configuration.";
+
+static char py_pjsua_set_rtp_cb_doc[] =
+    "py_pjsua.Call py_pjsua.py_pjsua_set_rtp_cb  ()  "
+    "Use this function to set rtp callback.";
 
 static char pjsua_config_default_doc[] =
     "py_pjsua.Config py_pjsua.config_default (). Use this function to "
@@ -5232,6 +5238,10 @@ static PyMethodDef py_pjsua_methods[] =
     {
     	"reconfigure_logging", py_pjsua_reconfigure_logging, METH_VARARGS,
     	pjsua_reconfigure_logging_doc
+    },
+    {
+    	"set_rtp_cb", py_pjsua_set_rtp_cb, METH_VARARGS,
+    	py_pjsua_set_rtp_cb_doc
     },
     {
     	"logging_config_default", py_pjsua_logging_config_default,

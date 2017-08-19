@@ -222,9 +222,9 @@ static void usage(void)
     fflush(stdout);
 }
 
-static void log_writer_nobuf(int level, const char *buffer, int len)
+static void log_writer_nobuf(const char * sender, int level, const char *buffer, int len)
 {
-    pj_log_write(level, buffer, len);
+    pj_log_write(sender, level, buffer, len);
     fflush(stdout);
 }
 

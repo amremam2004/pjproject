@@ -58,6 +58,7 @@ static int PJ_THREAD_FUNC worker_proc(void*);
 
 
 #define MAX_THREADS	16
+// change to 100
 
 
 /* List of media endpoint exit callback. */

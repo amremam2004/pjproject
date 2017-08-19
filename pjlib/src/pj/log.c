@@ -379,6 +379,7 @@ PJ_DEF(void) pj_log( const char *sender, int level,
 	*pre++ = '.';
 	pre += pj_utoa_pad(ptime.msec, pre, 3, '0');
     }
+#if 0
     if (log_decor & PJ_LOG_HAS_SENDER) {
 	enum { SENDER_WIDTH = 14 };
 	pj_size_t sender_len = strlen(sender);
@@ -394,6 +395,7 @@ PJ_DEF(void) pj_log( const char *sender, int level,
 		*pre++ = *sender++;
 	}
     }
+#endif
     if (log_decor & PJ_LOG_HAS_THREAD_ID) {
 	enum { THREAD_WIDTH = 12 };
 	const char *thread_name = pj_thread_get_name(pj_thread_this());
@@ -475,7 +477,7 @@ PJ_DEF(void) pj_log( const char *sender, int level,
     resume_logging(&saved_level);
 
     if (log_writer)
-	(*log_writer)(level, log_buffer, len);
+	(*log_writer)(sender, level, log_buffer, len);
 }
 
 /*

@@ -531,7 +531,6 @@ static void on_rx_rtp( pj_ioqueue_key_t *key,
 
 	if (!discard && udp->attached && cb)
 	    (*cb)(user_data, udp->rtp_pkt, bytes_read);
-
 	bytes_read = sizeof(udp->rtp_pkt);
 	udp->rtp_addrlen = sizeof(udp->rtp_src_addr);
 	status = pj_ioqueue_recvfrom(udp->rtp_key, &udp->rtp_read_op,
@@ -955,3 +954,45 @@ static pj_status_t transport_simulate_lost(pjmedia_transport *tp,
     return PJ_SUCCESS;
 }
 
+
+#if 0
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_rtp_cb(
+			pjmedia_transport *tp,
+						  void  (*rtp_cb)(	void*,		/**< To report incoming RTP.	    */
+							void*,
+							pj_ssize_t))
+{
+    struct transport_udp *udp = (struct transport_udp*) tp;
+		    PJ_LOG(2,("pjmedia_transport_udp_set_rtp_cb", "called"));
+
+    pj_assert(tp);
+		    PJ_LOG(2,("pjmedia_transport_udp_set_rtp_cb", "called ##"));
+	udp->rtp_cb = rtp_cb;
+    return PJ_SUCCESS;
+}
+							
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_rtcp_cb(
+			pjmedia_transport *tp,
+    					  void  (*rtcp_cb)(	void*,		/**< To report incoming RTCP.	    */
+							void*,
+							pj_ssize_t))
+{
+    struct transport_udp *udp = (struct transport_udp*) tp;
+
+    pj_assert(tp);
+	udp->rtcp_cb = rtcp_cb;
+    return PJ_SUCCESS;
+}
+							
+PJ_DECL(pj_status_t) pjmedia_transport_udp_set_userdata(
+			pjmedia_transport *tp,
+		void * user_data)
+{
+    struct transport_udp *udp = (struct transport_udp*) tp;
+
+    pj_assert(tp);
+	udp->user_data = user_data;
+    return PJ_SUCCESS;
+}
+#endif		
+		

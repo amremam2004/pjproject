@@ -110,6 +110,23 @@ enum pj_log_decoration
 				    } \
 				} while (0)
 
+
+#define PJ_LOG_SIP_RX(level, arg)	do { \
+				    if (level <= pj_log_get_level()) { \
+					pj_log_sip_rx_wrapper(arg); \
+				    } \
+				} while (0)
+
+#define PJ_LOG_SIP_TX(level, arg)	do { \
+				    if (level <= pj_log_get_level()) { \
+					pj_log_sip_tx_wrapper(arg); \
+				    } \
+				} while (0)
+
+#define pj_log_sip_rx_wrapper(arg)	pj_log_sip_rx arg
+#define pj_log_sip_tx_wrapper(arg)	pj_log_sip_tx arg
+
+
 /**
  * Signature for function to be registered to the logging subsystem to
  * write the actual log message to some output device.
@@ -118,7 +135,7 @@ enum pj_log_decoration
  * @param data	    Log message, which will be NULL terminated.
  * @param len	    Message length.
  */
-typedef void pj_log_func(int level, const char *data, int len);
+typedef void pj_log_func(const char * sender, int level, const char *data, int len);
 
 /**
  * Default logging writer function used by front end logger function.
@@ -130,7 +147,7 @@ typedef void pj_log_func(int level, const char *data, int len);
  * @param buffer    Log message.
  * @param len	    Message length.
  */
-PJ_DECL(void) pj_log_write(int level, const char *buffer, int len);
+PJ_DECL(void) pj_log_write(const char * sender, int level, const char *buffer, int len);
 
 
 #if PJ_LOG_MAX_LEVEL >= 1

@@ -102,7 +102,7 @@ PJ_DEF(void) pjsua_config_default(pjsua_config *cfg)
 {
     pj_bzero(cfg, sizeof(*cfg));
 
-    cfg->max_calls = ((PJSUA_MAX_CALLS) < 4) ? (PJSUA_MAX_CALLS) : 4;
+    cfg->max_calls = ((PJSUA_MAX_CALLS) < 4) ? (PJSUA_MAX_CALLS) : PJSUA_MAX_CALLS;  // 4
     cfg->thread_cnt = 1;
     cfg->nat_type_in_sdp = 1;
     cfg->stun_ignore_failure = PJ_TRUE;
@@ -364,7 +364,159 @@ PJ_DEF(void) pjsua_media_config_default(pjsua_media_config *cfg)
  *    appropriate transport instance has been decided for this message.
  *
  */
+/* Notification on incoming messages */
+static void pj_log_sip_rx(
+int msg_info_len, 
+int msg_type, 
+int status_code,
+const pj_str_t * cid,
+const pj_str_t * method,
+int cseq,
+const char * tryansport_type,
+const char * src_name,
+int src_port,
+void* msg_buf)
+{
+	int level=4;
+    if (level <= (int)pjsua_var.log_cfg.console_level)
+	if (pjsua_var.log_cfg.cb_sip_rx)
+	    (*pjsua_var.log_cfg.cb_sip_rx)(msg_info_len, 
+			msg_type, 
+			status_code,
+			cid,
+			method,
+			cseq,
+			tryansport_type,
+			src_name,
+			src_port,
+			msg_buf);
 
+
+}
+
+
+static pj_bool_t logging_on_rx_msg(pjsip_rx_data *rdata)
+{
+const pjsip_cseq_hdr *cseq;
+const pjsip_cid_hdr* cid;
+
+	cid=rdata->msg_info.cid;
+
+cseq=(const pjsip_cseq_hdr*) pjsip_msg_find_hdr(rdata->msg_info.msg, PJSIP_H_CSEQ, NULL);
+
+    if (rdata->msg_info.msg->type == PJSIP_REQUEST_MSG) {
+		PJ_LOG_SIP_RX(4, (rdata->msg_info.len, 
+			(rdata->msg_info.msg->type == PJSIP_REQUEST_MSG),
+			0,
+			(cid==NULL?NULL:  &cid->id),
+			&rdata->msg_info.msg->line.req.method.name,
+			(cseq==NULL? 0 : cseq->cseq),
+			 rdata->tp_info.transport->type_name,
+			 rdata->pkt_info.src_name,
+			 rdata->pkt_info.src_port,
+			 rdata->msg_info.msg_buf)
+			 );	
+    } else {
+		PJ_LOG_SIP_RX(4, (rdata->msg_info.len, 
+			(rdata->msg_info.msg->type == PJSIP_REQUEST_MSG),
+			rdata->msg_info.msg->line.status.code,
+			(cid==NULL? NULL: &cid->id),
+			(cseq==NULL? NULL : &cseq->method.name),
+			(cseq==NULL? 0 : cseq->cseq),
+			 rdata->tp_info.transport->type_name,
+			 rdata->pkt_info.src_name,
+			 rdata->pkt_info.src_port,
+			 rdata->msg_info.msg_buf)
+			 );	
+    }
+
+
+#if 0
+    PJ_LOG(4,(THIS_FILE, "RX %d bytes %s from %s %s:%d:\n"
+			 "%.*s\n"
+			 "--end msg--",
+			 rdata->msg_info.len,
+			 pjsip_rx_data_get_info(rdata),
+			 rdata->tp_info.transport->type_name,
+			 rdata->pkt_info.src_name,
+			 rdata->pkt_info.src_port,
+			 (int)rdata->msg_info.len,
+			 rdata->msg_info.msg_buf));
+    
+    /* Always return false, otherwise messages will not get processed! */
+#endif
+    return PJ_FALSE;
+}
+static void pj_log_sip_tx(int msg_info_len, 
+	int msg_type, 
+	int status_code,
+	const pj_str_t * cid,
+	const pj_str_t * method,
+	int cseq,
+	const char * tryansport_type,
+	const char * src_name,
+	int src_port,
+	void* msg_buf)
+{
+	int level=4;
+    if (level <= (int)pjsua_var.log_cfg.console_level)
+	if (pjsua_var.log_cfg.cb_sip_tx)
+	    (*pjsua_var.log_cfg.cb_sip_tx)(msg_info_len, 
+			msg_type, 
+			status_code,
+			cid,
+			method,
+			cseq,
+			tryansport_type,
+			src_name,
+			 src_port,
+			msg_buf);
+
+
+}
+/* Notification on outgoing messages */
+static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
+{
+const pjsip_cid_hdr* cid;
+ 
+const pjsip_cseq_hdr *cseq;
+	cid=PJSIP_MSG_CID_HDR(tdata->msg);
+	cseq=(const pjsip_cseq_hdr*) pjsip_msg_find_hdr(tdata->msg, PJSIP_H_CSEQ, NULL);
+
+    if (tdata->msg->type == PJSIP_REQUEST_MSG) {
+		PJ_LOG_SIP_TX(4, ((tdata->buf.cur - tdata->buf.start), 
+			(tdata->msg->type == PJSIP_REQUEST_MSG),
+			0,
+			(cid==NULL? NULL : &cid->id),
+			&tdata->msg->line.req.method.name,
+			(cseq==NULL? 0 : cseq->cseq),
+			 tdata->tp_info.transport->type_name,
+			 tdata->tp_info.dst_name,
+			 tdata->tp_info.dst_port,
+			 tdata->buf.start)
+			 );	
+    } else {
+		PJ_LOG_SIP_TX(4,((tdata->buf.cur - tdata->buf.start), 
+			(tdata->msg->type == PJSIP_REQUEST_MSG),
+			tdata->msg->line.status.code,
+			(cid==NULL? NULL: &cid->id),
+			(cseq==NULL?NULL: &cseq->method.name),
+			(cseq==NULL?0 : cseq->cseq),
+			 tdata->tp_info.transport->type_name,
+			 tdata->tp_info.dst_name,
+			 tdata->tp_info.dst_port,
+			 tdata->buf.start)
+			 );	
+    }
+
+ 
+ 
+ 
+
+    /* Always return success, otherwise message will not get sent! */
+    return PJ_SUCCESS;
+}
+#if 0
 /* Notification on incoming messages */
 static pj_bool_t logging_on_rx_msg(pjsip_rx_data *rdata)
 {
@@ -407,7 +559,7 @@ static pj_status_t logging_on_tx_msg(pjsip_tx_data *tdata)
     /* Always return success, otherwise message will not get sent! */
     return PJ_SUCCESS;
 }
-
+#endif
 /* The module instance. */
 static pjsip_module pjsua_msg_logger = 
 {
@@ -605,7 +757,7 @@ static pj_bool_t mod_pjsua_on_rx_response(pjsip_rx_data *rdata)
  */
 
 /* Log callback */
-static void log_writer(int level, const char *buffer, int len)
+static void log_writer(const char * sender, int level, const char *buffer, int len)
 {
     /* Write to file, stdout or application callback. */
 
@@ -619,9 +771,9 @@ static void log_writer(int level, const char *buffer, int len)
 
     if (level <= (int)pjsua_var.log_cfg.console_level) {
 	if (pjsua_var.log_cfg.cb)
-	    (*pjsua_var.log_cfg.cb)(level, buffer, len);
+	    (*pjsua_var.log_cfg.cb)(sender, level, buffer, len);
 	else
-	    pj_log_write(level, buffer, len);
+	    pj_log_write(sender, level, buffer, len);
     }
 }
 

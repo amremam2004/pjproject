@@ -416,6 +416,17 @@ pjmedia_session_set_dtmf_callback(pjmedia_session *session,
 					     int digit), 
 				  void *user_data);
 
+PJ_DECL(pj_status_t)
+pjmedia_session_set_rtp_log_callback(pjmedia_session *session,
+				  unsigned index,
+				  void (*cb)(pjmedia_stream*, 
+				 	     void *user_data, 
+				 	     void *pkg, 
+					     pj_size_t bytes_read), 
+				  void *user_data);
+
+
+
 /**
  * Destroy media session.
  *

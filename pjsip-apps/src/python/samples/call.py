@@ -21,7 +21,7 @@
 import sys
 import pjsua as pj
 
-LOG_LEVEL=3
+LOG_LEVEL=5
 current_call = None
 
 # Logging callback

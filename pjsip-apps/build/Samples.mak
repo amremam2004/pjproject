@@ -16,7 +16,9 @@ SRCDIR := ../src/samples
 OBJDIR := ./output/samples-$(TARGET_NAME)
 BINDIR := ../bin/samples/$(TARGET_NAME)
 
-SAMPLES := auddemo \
+SAMPLES :=
+
+SAMPLES3 := auddemo \
 	   aviplay \
 	   aectest \
 	   clidemo \
@@ -48,7 +50,9 @@ SAMPLES := auddemo \
 	   vid_codec_test \
 	   vid_streamutil
 
-PJSUA2_SAMPLES := pjsua2_demo
+PJSUA2_SAMPLES := 
+
+#pjsua2_demo
 
 EXES := $(foreach file, $(SAMPLES), $(file)$(HOST_EXE))
 PJSUA2_EXES := $(foreach file, $(PJSUA2_SAMPLES), $(file)$(HOST_EXE))

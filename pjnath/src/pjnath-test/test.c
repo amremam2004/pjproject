@@ -174,13 +174,13 @@ int param_log_decor = PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_TIME |
 pj_log_func *orig_log_func;
 FILE *log_file;
 
-static void test_log_func(int level, const char *data, int len)
+static void test_log_func(const char * sender, int level, const char *data, int len)
 {
     if (log_file) {
 	fwrite(data, len, 1, log_file);
     }
     if (level <= 3)
-	orig_log_func(level, data, len);
+	orig_log_func(sender, level, data, len);
 }
 
 static int test_inner(void)

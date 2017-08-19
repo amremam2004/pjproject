@@ -225,6 +225,9 @@ typedef struct PyObj_pjsua_callback
     PyObject * on_incoming_call;
     PyObject * on_call_media_state;
     PyObject * on_dtmf_digit;
+    PyObject * on_rtp_log;
+    PyObject * on_rx_sip_log;
+    PyObject * on_tx_sip_log;
     PyObject * on_call_transfer_request;
     PyObject * on_call_transfer_status;
     PyObject * on_call_replace_request;
@@ -249,6 +252,9 @@ static void PyObj_pjsua_callback_delete(PyObj_pjsua_callback* self)
     Py_XDECREF(self->on_incoming_call);
     Py_XDECREF(self->on_call_media_state);
     Py_XDECREF(self->on_dtmf_digit);
+    Py_XDECREF(self->on_rtp_log);
+    Py_XDECREF(self->on_rx_sip_log);
+    Py_XDECREF(self->on_tx_sip_log);
     Py_XDECREF(self->on_call_transfer_request);
     Py_XDECREF(self->on_call_transfer_status);
     Py_XDECREF(self->on_call_replace_request);
@@ -283,6 +289,9 @@ static PyObject * PyObj_pjsua_callback_new(PyTypeObject *type,
         self->on_incoming_call = Py_BuildValue("");
         self->on_call_media_state = Py_BuildValue("");
         self->on_dtmf_digit = Py_BuildValue("");
+        self->on_rtp_log = Py_BuildValue("");
+        self->on_rx_sip_log = Py_BuildValue("");
+        self->on_tx_sip_log = Py_BuildValue("");
         self->on_call_transfer_request = Py_BuildValue("");
         self->on_call_transfer_status = Py_BuildValue("");
         self->on_call_replace_request = Py_BuildValue("");
@@ -328,6 +337,21 @@ static PyMemberDef PyObj_pjsua_callback_members[] =
 	"on_dtmf_digit", T_OBJECT_EX,
 	offsetof(PyObj_pjsua_callback, on_dtmf_digit), 0,
 	"Notify application upon receiving incoming DTMF digit."
+    },
+    {
+	"on_rtp_log", T_OBJECT_EX,
+	offsetof(PyObj_pjsua_callback, on_rtp_log), 0,
+	"Notify application upon receive of rtp"
+    },
+    {
+	"on_rx_sip_log", T_OBJECT_EX,
+	offsetof(PyObj_pjsua_callback, on_rx_sip_log), 0,
+	"Notify application upon receive of sip"
+    },
+    {
+	"on_tx_sip_log", T_OBJECT_EX,
+	offsetof(PyObj_pjsua_callback, on_tx_sip_log), 0,
+	"Notify application upon sending of sip"
     },
     {
         "on_call_transfer_request", T_OBJECT_EX,
@@ -1035,6 +1059,10 @@ typedef struct
     unsigned	 decor;
     PyObject	*log_filename;
     PyObject	*cb;
+    PyObject	*cb_sip_rx;
+    PyObject	*cb_sip_tx;
+    //PyObject	*rtp_cb;
+    
 } PyObj_pjsua_logging_config;
 
 
@@ -1046,6 +1074,9 @@ static void PyObj_pjsua_logging_config_delete(PyObj_pjsua_logging_config* self)
 {
     Py_XDECREF(self->log_filename);
     Py_XDECREF(self->cb);
+    Py_XDECREF(self->cb_sip_rx);
+    Py_XDECREF(self->cb_sip_tx);
+    //Py_XDECREF(self->rtp_cb);
     self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -1089,6 +1120,9 @@ static PyObject * PyObj_pjsua_logging_config_new(PyTypeObject *type,
     if (self != NULL) {
         self->log_filename = PyString_FromString("");
         self->cb = Py_BuildValue("");
+        self->cb_sip_rx = Py_BuildValue("");
+        self->cb_sip_tx = Py_BuildValue("");
+        //self->rtp_cb = Py_BuildValue("");
     }
 
     return (PyObject *)self;
@@ -1132,6 +1166,29 @@ static PyMemberDef PyObj_pjsua_logging_config_members[] =
     	"specific device. This function will be called forlog messages on "
     	"input verbosity level."
     },
+    {
+    	"cb_sip_rx", T_OBJECT_EX, 
+	offsetof(PyObj_pjsua_logging_config, cb_sip_rx), 0,
+    	"Optional callback function to be called on sip rx "
+    	"specific device. This function will be called forlog messages on "
+    	"input verbosity level."
+    },
+    {
+    	"cb_sip_tx", T_OBJECT_EX, 
+	offsetof(PyObj_pjsua_logging_config, cb_sip_tx), 0,
+    	"Optional callback function to be called on sip tx "
+    	"specific device. This function will be called forlog messages on "
+    	"input verbosity level."
+    },
+#if 0
+    {
+    	"rtp_cb", T_OBJECT_EX, 
+	offsetof(PyObj_pjsua_logging_config, rtp_cb), 0,
+    	"Optional callback function to be called to write rtp log to application "
+    	"specific device. This function will be called forlog messages on "
+    	"input verbosity level."
+    },
+#endif
     {NULL}  /* Sentinel */
 };
 

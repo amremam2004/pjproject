@@ -1205,6 +1205,7 @@ typedef struct
     unsigned	 decor;
     PyObject	*log_filename;
     PyObject	*cb;
+    PyObject	*rtp_cb;
 } PyObj_pjsua_logging_config;
 
 
@@ -1216,6 +1217,7 @@ static void PyObj_pjsua_logging_config_delete(PyObj_pjsua_logging_config* self)
 {
     Py_XDECREF(self->log_filename);
     Py_XDECREF(self->cb);
+    Py_XDECREF(self->rtp_cb);
     self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -1269,6 +1271,13 @@ static PyObject * PyObj_pjsua_logging_config_new(PyTypeObject *type,
             Py_DECREF(Py_None);
             return NULL;
         }
+        Py_INCREF(Py_None);
+        self->rtp_cb = Py_None;
+        if (self->rtp_cb == NULL)
+    	{
+            Py_DECREF(Py_None);
+            return NULL;
+        }
     }
 
     return (PyObject *)self;
@@ -1309,6 +1318,13 @@ static PyMemberDef PyObj_pjsua_logging_config_members[] =
     	"cb", T_OBJECT_EX, 
 	offsetof(PyObj_pjsua_logging_config, cb), 0,
     	"Optional callback function to be called to write log to application "
+    	"specific device. This function will be called forlog messages on "
+    	"input verbosity level."
+    },
+    {
+    	"rtp_cb", T_OBJECT_EX, 
+	offsetof(PyObj_pjsua_logging_config, rtp_cb), 0,
+    	"Optional callback function to be called to write rtp log to application "
     	"specific device. This function will be called forlog messages on "
     	"input verbosity level."
     },
